@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Crop Recommendation</title>
+</head>
+<body> 
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: url('https://camo.githubusercontent.com/1bdf0f0577d91db85f8f22e7f8ed20e301498a172302c0d4455b58669114195c/68747470733a2f2f6d656469612e6c6963646e2e636f6d2f646d732f696d6167652f76322f4335313132415145366466527a5633454a74412f61727469636c652d636f7665725f696d6167652d736872696e6b5f3630305f323030302f61727469636c652d636f7665725f696d6167652d736872696e6b5f3630305f323030302f302f313535373738373830353739393f653d3231343734383336343726763d6265746126743d5f33394447695868377236307046704a4176486c756454794652344d726143616e4c325353377532787255') no-repeat center center fixed;
+    background-size: cover;
+    background-attachment: fixed;
+    transition: background-image 1s ease-in-out;
+    color: #fff;
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    margin: 50px auto;
+    border-radius: 15px;
+    max-width: 500px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    color: #333; /* dark text inside container */
+}
+
+h1 {
+    color: #2e7d32; /* dark green heading */
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2); /* subtle shadow for readability */
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    color: #1b5e20; /* dark green for labels */
+}
+
+input, button {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    color: #000; /* black text in inputs */
+    background-color: #fff;
+}
+
+button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#result {
+    margin-top: 20px;
+    font-weight: bold;
+    font-size: 18px;
+    color: #1b5e20; /* dark green result text */
+    text-align: center;
+}
+
+#history h2 {
+    color: #2e7d32; /* dark green heading */
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+.history-item {
+    background-color: #f1f8e9; /* light green background */
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border-left: 4px solid #4caf50;
+    color: #33691e; /* dark green text */
+}
+
+.history-item p {
+    margin: 5px 0;
+}
+
+.history-item small {
+    color: #555; /* dark gray timestamp */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .container {
+        margin: 20px;
+        padding: 20px;
+    }
+}
+</style>
+
+<div class="container">
+    <h1>Crop Recommendation System</h1>
+
+    <form id="cropForm">
+        <label for="N">Nitrogen (N):</label>
+        <input type="number" id="N" placeholder="e.g., 90" required>
+
+        <label for="P">Phosphorous (P):</label>
+        <input type="number" id="P" placeholder="e.g., 42" required>
+
+        <label for="K">Potassium (K):</label>
+        <input type="number" id="K" placeholder="e.g., 43" required>
+
+        <label for="temperature">Temperature (°C):</label>
+        <input type="number" id="temperature" placeholder="e.g., 20.87" step="0.01" required>
+
+        <label for="humidity">Humidity (%):</label>
+        <input type="number" id="humidity" placeholder="e.g., 82.00" step="0.01" required>
+
+        <label for="ph">pH Value:</label>
+        <input type="number" id="ph" placeholder="e.g., 6.50" step="0.01" required>
+
+        <label for="rainfall">Rainfall (mm):</label>
+        <input type="number" id="rainfall" placeholder="e.g., 202.93" step="0.01" required>
+
+        <button type="submit">Predict Crop</button>
+    </form>
+
+    <div id="result"></div>
+
+    <div id="history">
+        <h2>Recent Predictions</h2>
+        <div id="historyList"></div>
+    </div>
+
+    <script>
+        document.getElementById('cropForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch('/predict-crop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+                document.getElementById('result').innerHTML = `<p>Recommended Crop: <strong>${result.crop}</strong></p>`;
+                loadHistory();
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '<p>Error predicting crop. Please try again.</p>';
+            }
+        });
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/history');
+                const history = await response.json();
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = history.map(item => `
+                    <div class="history-item">
+                        <p><strong>Crop:</strong> ${item.crop}</p>
+                        <p><small>${new Date(item.timestamp).toLocaleString()}</small></p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        // Load history on page load
+        loadHistory();
+    </script>
+</div>
+</body>
+</html>
